@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Histórico – RunPlan</title>
+  <link rel="stylesheet" href="../styles.css" />
+  <style>
+    .record-card {
+      background-color: var(--color-white);
+      border: 1px solid var(--color-gray-200);
+      border-radius: var(--radius-xl);
+      padding: 1rem;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .record-card .record-date {
+      font-weight: 600;
+      color: var(--color-gray-800);
+      font-size: 0.9rem;
+    }
+    .record-card .record-meta {
+      font-size: 0.75rem;
+      color: var(--color-gray-500);
+      margin-top: 2px;
+    }
+    .record-card .record-dist {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--color-green-600);
+      text-align: right;
+    }
+    .record-card .record-time {
+      font-size: 0.75rem;
+      color: var(--color-gray-500);
+      text-align: right;
+    }
+    .records-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .section-divider { margin: 1.5rem 0 1rem; font-size: 1rem; font-weight: 600; color: var(--color-gray-700); }
+    .clear-btn-wrap { text-align: right; margin-top: 1.5rem; }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- Header -->
+  <header class="app-header">
+    <span class="logo-icon">🏅</span>
+    <div>
+      <h1>RunPlan</h1>
+      <p class="subtitle">Corrida Inteligente para Iniciantes</p>
+    </div>
+    <span class="user-greeting" id="userGreeting"></span>
+  </header>
+
+  <!-- Main -->
+  <main class="main-content" id="mainContent">
+    <!-- Populated by JS -->
+  </main>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <a href="dashboard.html">
+      <span class="nav-icon">⚡</span>
+      <span class="nav-label">Pace</span>
+    </a>
+    <a href="run.html">
+      <span class="nav-icon">🏃</span>
+      <span class="nav-label">Correr</span>
+    </a>
+    <a href="history.html" class="active">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Progresso</span>
+    </a>
+  </nav>
+
+</div>
+
+<script>
+  /* ===== Helpers ===== */
+  function loadProfile() {
+    try { return JSON.parse(localStorage.getItem('runplan_profile') || 'null'); } catch { return null; }
+  }
+  function loadRecords() {
+    try { return JSON.parse(localStorage.getItem('runplan_records') || '[]'); } catch { return []; }
+  }
+  function saveRecords(r) { localStorage.setItem('runplan_records', JSON.stringify(r)); }
+  function formatDate(iso) {
+    var d = new Date(iso);
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+  function formatTime(secs) {
+    var m = Math.floor(secs / 60);
+    var s = secs % 60;
+    return m + ':' + String(s).padStart(2, '0');
+  }
+  function formatPace(minPerKm) {
+    var mins = Math.floor(minPerKm);
+    var secs = Math.round((minPerKm - mins) * 60);
+    return mins + ':' + String(secs).padStart(2, '0') + ' min/km';
+  }
+
+  /* ===== Render ===== */
+  var main = document.getElementById('mainContent');
+  var profile = loadProfile();
+
+  if (profile && profile.name) {
+    document.getElementById('userGreeting').textContent = 'Olá, ' + profile.name + '!';
+  }
+
+  function render() {
+    var records = loadRecords();
+    main.innerHTML = '';
+
+    if (records.length === 0) {
+      main.innerHTML =
+        '<div class="empty-state">' +
+          '<div class="empty-icon">📊</div>' +
+          '<h2>Seu progresso</h2>' +
+          '<p>Você ainda não tem corridas registradas. Complete sua primeira corrida para ver seu progresso aqui!</p>' +
+          '<a href="run.html" class="btn btn-primary" style="margin-top:1.5rem; display:inline-flex;">Ir para Modo Corrida</a>' +
+        '</div>';
+      return;
+    }
+
+    /* Summary stats */
+    var totalDist = records.reduce(function (s, r) { return s + r.distanceKm; }, 0);
+    var totalKcal = records.reduce(function (s, r) { return s + r.calories; }, 0);
+    var avgPace = records.length > 0
+      ? records.reduce(function (s, r) { return s + r.avgPaceMinPerKm; }, 0) / records.length
+      : 0;
+
+    var html =
+      '<h2 class="section-title">📊 Seu progresso</h2>' +
+      '<p class="section-subtitle">Acompanhe sua evolução e comemore cada corrida!</p>' +
+      '<div class="stat-grid">' +
+        '<div class="stat-card green"><div class="stat-value">' + totalDist.toFixed(1) + '</div><div class="stat-label">km totais</div></div>' +
+        '<div class="stat-card blue"><div class="stat-value">' + records.length + '</div><div class="stat-label">corridas</div></div>' +
+        '<div class="stat-card orange"><div class="stat-value">' + totalKcal + '</div><div class="stat-label">kcal queimadas</div></div>' +
+        '<div class="stat-card purple"><div class="stat-value">' + formatPace(avgPace) + '</div><div class="stat-label">pace médio</div></div>' +
+      '</div>';
+
+    /* Records list */
+    var sorted = records.slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+    html += '<div class="section-divider">Histórico de corridas</div><div class="records-list">';
+    sorted.forEach(function (r) {
+      html +=
+        '<div class="record-card">' +
+          '<div>' +
+            '<div class="record-date">' + formatDate(r.date) + '</div>' +
+            '<div class="record-meta">' + formatPace(r.avgPaceMinPerKm) + ' &bull; ' + r.calories + ' kcal</div>' +
+          '</div>' +
+          '<div>' +
+            '<div class="record-dist">' + r.distanceKm + ' km</div>' +
+            '<div class="record-time">' + formatTime(r.durationSeconds) + '</div>' +
+          '</div>' +
+        '</div>';
+    });
+    html += '</div>';
+
+    /* Motivation */
+    html +=
+      '<div class="notice yellow" style="margin-top:1.5rem;">' +
+        '🌟 Continue assim! A consistência é a chave para evoluir sem se machucar.' +
+      '</div>';
+
+    /* Clear history button */
+    html +=
+      '<div class="clear-btn-wrap">' +
+        '<button id="clearBtn" class="btn btn-danger" style="font-size:0.8rem; padding: 0.5rem 1rem;">Apagar histórico</button>' +
+      '</div>';
+
+    main.innerHTML = html;
+
+    document.getElementById('clearBtn').addEventListener('click', function () {
+      if (confirm('Tem certeza que deseja apagar todo o histórico de corridas?')) {
+        saveRecords([]);
+        render();
+      }
+    });
+  }
+
+  render();
+</script>
+</body>
+</html>

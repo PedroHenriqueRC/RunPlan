@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Correr – RunPlan</title>
+  <link rel="stylesheet" href="../styles.css" />
+  <style>
+    .run-config-form { margin-bottom: 1.5rem; }
+    .motivational {
+      background-color: var(--color-green-50);
+      border: 1px solid var(--color-green-200);
+      border-radius: var(--radius-xl);
+      padding: 1rem;
+      font-size: 0.875rem;
+      color: var(--color-green-700);
+      text-align: center;
+      margin-top: 1.5rem;
+      min-height: 3.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .finish-box {
+      background-color: var(--color-green-50);
+      border: 1px solid var(--color-green-200);
+      border-radius: var(--radius-xl);
+      padding: 1.5rem;
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+    .finish-box h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--color-green-700);
+      margin-bottom: 0.75rem;
+    }
+    .finish-box .finish-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .finish-stat {
+      background-color: var(--color-white);
+      border-radius: var(--radius-lg);
+      padding: 0.625rem;
+    }
+    .finish-stat .val { font-size: 1.25rem; font-weight: 700; color: var(--color-green-600); }
+    .finish-stat .lbl { font-size: 0.7rem; color: var(--color-gray-500); }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- Header -->
+  <header class="app-header">
+    <span class="logo-icon">🏅</span>
+    <div>
+      <h1>RunPlan</h1>
+      <p class="subtitle">Corrida Inteligente para Iniciantes</p>
+    </div>
+    <span class="user-greeting" id="userGreeting"></span>
+  </header>
+
+  <!-- Main -->
+  <main class="main-content">
+    <h2 class="section-title">🏃 Modo Corrida</h2>
+    <p class="section-subtitle">Configure sua corrida e pressione Iniciar quando estiver pronto.</p>
+
+    <!-- Config (shown before run starts) -->
+    <div id="configSection" class="run-config-form">
+      <div class="form-group">
+        <label for="targetKm">Distância alvo (km)</label>
+        <input type="number" id="targetKm" class="form-control" value="3" min="0.5" max="42" step="0.5" />
+      </div>
+      <button id="startBtn" class="btn btn-primary btn-full">▶ Iniciar corrida</button>
+    </div>
+
+    <!-- Timer (shown during run) -->
+    <div id="runSection" style="display: none;">
+      <div class="timer-display">
+        <div class="timer-value" id="timerDisplay">00:00</div>
+        <div class="pace-hint" id="paceHint">Pace estimado: —</div>
+      </div>
+
+      <div style="margin-bottom: 0.5rem; font-size: 0.8rem; color: var(--color-gray-500);">
+        Progresso (<span id="distCovered">0.0</span> / <span id="distTarget">—</span> km)
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progressFill" style="width: 0%;"></div>
+      </div>
+
+      <div class="run-controls">
+        <button id="pauseBtn" class="btn btn-secondary" style="flex: 1;">⏸ Pausar</button>
+        <button id="stopBtn" class="btn btn-danger" style="flex: 1;">⏹ Finalizar</button>
+      </div>
+
+      <div class="motivational" id="motivational">💪 Você consegue! Mantenha o ritmo!</div>
+    </div>
+
+    <!-- Finish summary (shown after run) -->
+    <div id="finishSection" style="display: none;" class="finish-box">
+      <h3>🎉 Corrida concluída!</h3>
+      <div class="finish-stats">
+        <div class="finish-stat">
+          <div class="val" id="finDist">—</div>
+          <div class="lbl">km percorridos</div>
+        </div>
+        <div class="finish-stat">
+          <div class="val" id="finTime">—</div>
+          <div class="lbl">tempo total</div>
+        </div>
+        <div class="finish-stat">
+          <div class="val" id="finPace">—</div>
+          <div class="lbl">pace médio</div>
+        </div>
+        <div class="finish-stat">
+          <div class="val" id="finKcal">—</div>
+          <div class="lbl">kcal queimadas</div>
+        </div>
+      </div>
+      <button id="newRunBtn" class="btn btn-primary btn-full">Nova corrida</button>
+    </div>
+  </main>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <a href="dashboard.html">
+      <span class="nav-icon">⚡</span>
+      <span class="nav-label">Pace</span>
+    </a>
+    <a href="run.html" class="active">
+      <span class="nav-icon">🏃</span>
+      <span class="nav-label">Correr</span>
+    </a>
+    <a href="history.html">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Progresso</span>
+    </a>
+  </nav>
+
+</div>
+
+<script>
+  /* ===== Helpers ===== */
+  function loadProfile() {
+    try { return JSON.parse(localStorage.getItem('runplan_profile') || 'null'); } catch { return null; }
+  }
+  function loadRecords() {
+    try { return JSON.parse(localStorage.getItem('runplan_records') || '[]'); } catch { return []; }
+  }
+  function saveRecords(records) {
+    localStorage.setItem('runplan_records', JSON.stringify(records));
+  }
+  function formatTime(secs) {
+    var m = Math.floor(secs / 60);
+    var s = secs % 60;
+    return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  }
+  function formatPace(minPerKm) {
+    var mins = Math.floor(minPerKm);
+    var secs = Math.round((minPerKm - mins) * 60);
+    return mins + ':' + String(secs).padStart(2, '0') + ' min/km';
+  }
+
+  /* ===== Motivational messages ===== */
+  var TIPS = [
+    '💪 Você consegue! Mantenha o ritmo!',
+    '🌬️ Respire fundo e mantenha a cadência.',
+    '🔥 Cada passo conta. Continue!',
+    '🧘 Relaxe os ombros e respire pelo nariz.',
+    '🏆 Você está construindo um hábito incrível!',
+    '👟 Mantenha o core firme e a postura ereta.',
+    '✨ Foque no próximo metro, não na distância total.',
+    '💧 Hidrate-se bem após a corrida!',
+  ];
+
+  /* ===== State ===== */
+  var elapsed = 0;
+  var running = false;
+  var paused = false;
+  var ticker = null;
+  var tipIndex = 0;
+  var profile = loadProfile();
+  var targetKm = 3;
+
+  /* ===== Init ===== */
+  (function init() {
+    if (profile && profile.name) {
+      document.getElementById('userGreeting').textContent = 'Olá, ' + profile.name + '!';
+    }
+  })();
+
+  /* ===== Start ===== */
+  document.getElementById('startBtn').addEventListener('click', function () {
+    targetKm = parseFloat(document.getElementById('targetKm').value) || 3;
+    elapsed = 0;
+    running = true;
+    paused = false;
+    tipIndex = 0;
+
+    document.getElementById('configSection').style.display = 'none';
+    document.getElementById('finishSection').style.display = 'none';
+    document.getElementById('runSection').style.display = 'block';
+
+    document.getElementById('distTarget').textContent = targetKm.toFixed(1);
+    updateMotivational();
+
+    ticker = setInterval(tick, 1000);
+  });
+
+  /* ===== Tick ===== */
+  function tick() {
+    if (!paused) {
+      elapsed++;
+      updateDisplay();
+      if (elapsed % 30 === 0) updateMotivational();
+    }
+  }
+
+  function updateDisplay() {
+    document.getElementById('timerDisplay').textContent = formatTime(elapsed);
+
+    var pace = profile && profile.pace ? profile.pace : 8;
+    var distCovered = elapsed / 60 / pace;
+    document.getElementById('distCovered').textContent = distCovered.toFixed(2);
+
+    var progress = Math.min(100, (distCovered / targetKm) * 100);
+    document.getElementById('progressFill').style.width = progress + '%';
+
+    if (elapsed > 0) {
+      document.getElementById('paceHint').textContent = 'Pace estimado: ' + formatPace(pace);
+    }
+  }
+
+  function updateMotivational() {
+    document.getElementById('motivational').textContent = TIPS[tipIndex % TIPS.length];
+    tipIndex++;
+  }
+
+  /* ===== Pause ===== */
+  document.getElementById('pauseBtn').addEventListener('click', function () {
+    paused = !paused;
+    this.textContent = paused ? '▶ Retomar' : '⏸ Pausar';
+  });
+
+  /* ===== Stop / Finish ===== */
+  document.getElementById('stopBtn').addEventListener('click', function () {
+    clearInterval(ticker);
+    running = false;
+
+    var pace = profile && profile.pace ? profile.pace : 8;
+    var distCovered = parseFloat((elapsed / 60 / pace).toFixed(2));
+    var weight = (profile && profile.weight) ? profile.weight : 70;
+    // Calorie estimate: distance (km) × weight (kg) × 1.036 (MET-based coefficient for running at moderate effort)
+    var kcal = Math.round(distCovered * weight * 1.036);
+
+    // Save record
+    var records = loadRecords();
+    records.push({
+      id: Date.now().toString(),
+      date: new Date().toISOString(),
+      distanceKm: distCovered,
+      durationSeconds: elapsed,
+      avgPaceMinPerKm: pace,
+      calories: kcal,
+    });
+    saveRecords(records);
+
+    document.getElementById('runSection').style.display = 'none';
+
+    document.getElementById('finDist').textContent = distCovered;
+    document.getElementById('finTime').textContent = formatTime(elapsed);
+    document.getElementById('finPace').textContent = formatPace(pace);
+    document.getElementById('finKcal').textContent = kcal;
+
+    document.getElementById('finishSection').style.display = 'block';
+  });
+
+  /* ===== New run ===== */
+  document.getElementById('newRunBtn').addEventListener('click', function () {
+    document.getElementById('finishSection').style.display = 'none';
+    document.getElementById('configSection').style.display = 'block';
+  });
+</script>
+</body>
+</html>
