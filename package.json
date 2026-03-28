@@ -1,0 +1,21 @@
+{
+  "name": "run-plan",
+  "version": "1.0.0",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon --exec node app.js"
+  },
+  "author": "Feito pelos desenvolvedores @ São Paulo Tech School / Bandtec Digital School",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1",
+    "mysql2": "^3.20.0",
+    "nodemon": "^2.0.7",
+    "path": "^0.12.7"
+  },
+  "keywords": [],
+  "description": ""
+}

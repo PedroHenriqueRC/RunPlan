@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+
+<header>
+  <h1>Corrida</h1>
+</header>
+
+<div class="container">
+  <h2>Treino em andamento</h2>
+
+  <div class="card">
+    <p>Distância: <span id="distance">0.00</span> km</p>
+    <p>Tempo: <span id="time">0</span> s</p>
+    <p>Pace: <span id="pace">0</span></p>
+  </div>
+
+  <button onclick="startRun()">Iniciar</button>
+</div>
+
+<script>
+let distance = 0;
+let time = 0;
+
+function startRun() {
+  setInterval(() => {
+    distance += 0.05;
+    time += 1;
+
+    document.getElementById("distance").innerText = distance.toFixed(2);
+    document.getElementById("time").innerText = time;
+    document.getElementById("pace").innerText = (time / distance).toFixed(2);
+  }, 1000);
+}
+</script>
+
+</body>
+</html>
