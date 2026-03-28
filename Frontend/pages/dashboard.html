@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel – RunPlan</title>
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- Header -->
+  <header class="app-header">
+    <span class="logo-icon">🏅</span>
+    <div>
+      <h1>RunPlan</h1>
+      <p class="subtitle">Corrida Inteligente para Iniciantes</p>
+    </div>
+    <span class="user-greeting" id="userGreeting"></span>
+  </header>
+
+  <!-- Main -->
+  <main class="main-content">
+    <h2 class="section-title">⚡ Calculadora de Pace</h2>
+    <p class="section-subtitle">Descubra seu ritmo ideal para começar a correr sem se machucar.</p>
+
+    <form id="paceForm">
+      <div class="form-group">
+        <label for="name">Seu nome</label>
+        <input type="text" id="name" class="form-control" placeholder="Ex: João" />
+      </div>
+
+      <div class="form-group">
+        <label>Nível de condicionamento físico</label>
+        <div class="radio-group">
+          <label class="radio-option">
+            <input type="radio" name="fitness" value="beginner" checked />
+            <span>Iniciante – raramente pratico exercícios</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="fitness" value="intermediate" />
+            <span>Intermediário – pratico exercícios 2-3x por semana</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="fitness" value="advanced" />
+            <span>Avançado – pratico exercícios regularmente</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="age">Idade (opcional)</label>
+          <input type="number" id="age" class="form-control" placeholder="Ex: 30" min="10" max="100" />
+        </div>
+        <div class="form-group">
+          <label for="weight">Peso em kg (opcional)</label>
+          <input type="number" id="weight" class="form-control" placeholder="Ex: 70" min="30" max="200" />
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full">Calcular meu pace ideal</button>
+    </form>
+
+    <!-- Pace Result -->
+    <div id="paceResult" class="result-box" style="display: none;">
+      <p class="result-label">Seu pace ideal é:</p>
+      <p class="result-value" id="paceValue">—</p>
+      <p class="result-hint">Esse é o ritmo recomendado para suas corridas. Comece devagar e aumente gradualmente!</p>
+    </div>
+
+    <!-- Training Plan Preview -->
+    <div style="margin-top: 2rem;" id="planSection" style="display: none;">
+      <h2 class="section-title">📅 Plano de Treino</h2>
+      <p class="section-subtitle">Seu plano progressivo para começar a correr com segurança.</p>
+
+      <div class="form-group">
+        <label for="goal">Meta de distância</label>
+        <select id="goal" class="form-control">
+          <option value="3">3 km</option>
+          <option value="5" selected>5 km</option>
+          <option value="10">10 km</option>
+          <option value="21">21 km (meia maratona)</option>
+        </select>
+      </div>
+
+      <div id="weekPlan"></div>
+    </div>
+  </main>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <a href="dashboard.html" class="active">
+      <span class="nav-icon">⚡</span>
+      <span class="nav-label">Pace</span>
+    </a>
+    <a href="run.html">
+      <span class="nav-icon">🏃</span>
+      <span class="nav-label">Correr</span>
+    </a>
+    <a href="history.html">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Progresso</span>
+    </a>
+  </nav>
+
+</div>
+
+<script>
+  /* ===== Utility helpers ===== */
+  function loadProfile() {
+    try { return JSON.parse(localStorage.getItem('runplan_profile') || 'null'); } catch { return null; }
+  }
+  function saveProfile(profile) {
+    localStorage.setItem('runplan_profile', JSON.stringify(profile));
+  }
+  function formatPace(minPerKm) {
+    var mins = Math.floor(minPerKm);
+    var secs = Math.round((minPerKm - mins) * 60);
+    return mins + ':' + String(secs).padStart(2, '0') + ' min/km';
+  }
+
+  /* ===== Pace calculation (mirrors paceCalculator.ts logic) ===== */
+  var BASE_PACE = { beginner: 8, intermediate: 6, advanced: 5 };
+  function calculateIdealPace(fitnessLevel, age, weight) {
+    var pace = BASE_PACE[fitnessLevel] || 8;
+    if (age && age > 50) pace += (age - 50) * 0.05;
+    if (weight && weight > 80) pace += (weight - 80) * 0.02;
+    return Math.max(4, pace);
+  }
+
+  /* ===== Training plan generation ===== */
+  var SESSION_TYPES = ['Leve', 'Moderado', 'Leve'];
+  var SESSION_BADGES = ['easy', 'moderate', 'easy'];
+  function generatePlan(goalKm) {
+    var weeks = [];
+    var dist = Math.max(1, goalKm * 0.3);
+    var totalWeeks = Math.ceil(Math.log(goalKm / dist) / Math.log(1.1)) + 2;
+    totalWeeks = Math.min(totalWeeks, 12);
+    for (var w = 0; w < totalWeeks; w++) {
+      var sessions = SESSION_TYPES.map(function (type, i) {
+        var d = parseFloat(Math.min(dist, goalKm).toFixed(1));
+        return { type: type, badge: SESSION_BADGES[i], distance: d };
+      });
+      weeks.push(sessions);
+      dist = dist * 1.1;
+    }
+    return weeks;
+  }
+
+  /* ===== DOM refs ===== */
+  var greeting = document.getElementById('userGreeting');
+  var paceForm = document.getElementById('paceForm');
+  var paceResult = document.getElementById('paceResult');
+  var paceValue = document.getElementById('paceValue');
+  var weekPlanEl = document.getElementById('weekPlan');
+  var goalSelect = document.getElementById('goal');
+  var planSection = document.getElementById('planSection');
+
+  /* ===== Init: populate from saved profile ===== */
+  (function init() {
+    var profile = loadProfile();
+    if (profile) {
+      if (profile.name) {
+        greeting.textContent = 'Olá, ' + profile.name + '!';
+        document.getElementById('name').value = profile.name;
+      }
+      if (profile.fitnessLevel) {
+        var radio = document.querySelector('input[name="fitness"][value="' + profile.fitnessLevel + '"]');
+        if (radio) radio.checked = true;
+      }
+      if (profile.age) document.getElementById('age').value = profile.age;
+      if (profile.weight) document.getElementById('weight').value = profile.weight;
+
+      if (profile.pace) {
+        paceValue.textContent = formatPace(profile.pace);
+        paceResult.style.display = 'block';
+        renderPlan();
+        planSection.removeAttribute('style');
+      }
+    }
+  })();
+
+  /* ===== Form submit ===== */
+  paceForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var name = document.getElementById('name').value.trim() || 'Corredor';
+    var fitnessLevel = document.querySelector('input[name="fitness"]:checked').value;
+    var age = parseInt(document.getElementById('age').value, 10) || undefined;
+    var weight = parseFloat(document.getElementById('weight').value) || undefined;
+
+    var pace = calculateIdealPace(fitnessLevel, age, weight);
+    var profile = { name: name, fitnessLevel: fitnessLevel, age: age, weight: weight, pace: pace };
+    saveProfile(profile);
+
+    greeting.textContent = 'Olá, ' + name + '!';
+    paceValue.textContent = formatPace(pace);
+    paceResult.style.display = 'block';
+
+    renderPlan();
+    planSection.removeAttribute('style');
+  });
+
+  /* ===== Training plan render ===== */
+  goalSelect.addEventListener('change', renderPlan);
+  function renderPlan() {
+    var goalKm = parseInt(goalSelect.value, 10);
+    var weeks = generatePlan(goalKm);
+    weekPlanEl.innerHTML = '';
+    weeks.forEach(function (sessions, wi) {
+      var card = document.createElement('div');
+      card.className = 'week-card';
+      var header = document.createElement('div');
+      header.className = 'week-header';
+      header.textContent = 'Semana ' + (wi + 1);
+      card.appendChild(header);
+      sessions.forEach(function (s, si) {
+        var row = document.createElement('div');
+        row.className = 'session-row';
+        row.innerHTML =
+          '<span class="session-label">Sessão ' + (si + 1) + ' – ' + s.distance + ' km</span>' +
+          '<span class="session-badge ' + s.badge + '">' + s.type + '</span>';
+        card.appendChild(row);
+      });
+      weekPlanEl.appendChild(card);
+    });
+  }
+</script>
+</body>
+</html>

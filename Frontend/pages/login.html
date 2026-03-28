@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Entrar – RunPlan</title>
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body class="login-page">
+
+  <div class="login-card">
+    <!-- Brand -->
+    <div class="brand">
+      <span class="brand-icon">🏅</span>
+      <div>
+        <div class="brand-name">RunPlan</div>
+        <div class="brand-tagline">Corrida Inteligente para Iniciantes</div>
+      </div>
+    </div>
+
+    <!-- Login Form -->
+    <form id="loginForm" novalidate>
+      <div class="form-group">
+        <label for="email">E-mail</label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          class="form-control"
+          placeholder="seuemail@exemplo.com"
+          required
+          autocomplete="email"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Senha</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          class="form-control"
+          placeholder="••••••••"
+          required
+          autocomplete="current-password"
+          minlength="6"
+        />
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full">Entrar</button>
+    </form>
+
+    <div class="login-divider">ou</div>
+
+    <!-- Register Link -->
+    <p class="login-footer">
+      Ainda não tem conta?
+      <a href="#register">Cadastre-se gratuitamente</a>
+    </p>
+
+    <!-- Register Form (hidden by default, toggled via JS) -->
+    <form id="registerForm" novalidate style="display: none; margin-top: 1rem;">
+      <div class="form-group">
+        <label for="regName">Seu nome</label>
+        <input
+          type="text"
+          id="regName"
+          name="name"
+          class="form-control"
+          placeholder="Ex: João"
+          required
+          autocomplete="name"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="regEmail">E-mail</label>
+        <input
+          type="email"
+          id="regEmail"
+          name="email"
+          class="form-control"
+          placeholder="seuemail@exemplo.com"
+          required
+          autocomplete="email"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="regPassword">Senha</label>
+        <input
+          type="password"
+          id="regPassword"
+          name="password"
+          class="form-control"
+          placeholder="Mínimo 6 caracteres"
+          required
+          autocomplete="new-password"
+          minlength="6"
+        />
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full">Criar conta</button>
+
+      <p class="login-footer" style="margin-top: 0.75rem;">
+        Já tem conta?
+        <a href="#login">Entrar</a>
+      </p>
+    </form>
+  </div>
+
+  <script>
+    // Toggle between login and register forms
+    document.querySelectorAll('a[href="#register"]').forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        document.getElementById('loginForm').style.display = 'none';
+        document.getElementById('registerForm').style.display = 'block';
+      });
+    });
+
+    document.querySelectorAll('a[href="#login"]').forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        document.getElementById('registerForm').style.display = 'none';
+        document.getElementById('loginForm').style.display = 'block';
+      });
+    });
+
+    // Login submit: save name to localStorage and redirect to dashboard
+    document.getElementById('loginForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var email = document.getElementById('email').value.trim();
+      if (!email) return;
+      // Retrieve saved name or use email prefix as fallback
+      var profile = JSON.parse(localStorage.getItem('runplan_profile') || '{}');
+      if (!profile.name) {
+        profile.name = email.split('@')[0];
+        localStorage.setItem('runplan_profile', JSON.stringify(profile));
+      }
+      window.location.href = 'dashboard.html';
+    });
+
+    // Register submit: save profile and redirect to dashboard
+    document.getElementById('registerForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var name = document.getElementById('regName').value.trim() || 'Corredor';
+      var profile = JSON.parse(localStorage.getItem('runplan_profile') || '{}');
+      profile.name = name;
+      localStorage.setItem('runplan_profile', JSON.stringify(profile));
+      window.location.href = 'dashboard.html';
+    });
+  </script>
+</body>
+</html>
